@@ -1,0 +1,23 @@
+{
+  "name": "example",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^2.0.23",
+    "ai": "^5.0.28",
+    "solid-js": "^1.9.8",
+    "solid-markdown": "^2.0.14",
+    "ai-sdk-solid": ".."
+  },
+  "devDependencies": {
+    "typescript": "~5.9.2",
+    "vite": "^7.1.2",
+    "vite-plugin-solid": "^2.11.8"
+  }
+}

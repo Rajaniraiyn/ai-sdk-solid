@@ -1,0 +1,24 @@
+{
+    "compilerOptions": {
+        // Output
+        "outDir": "dist",
+        "tsBuildInfoFile": "node_modules/.cache/.tsbuildinfo",
+        // Language and Module
+        "target": "ES2018",
+        "module": "ES2020",
+        "moduleResolution": "Bundler",
+        "lib": [
+            "ES2024",
+            "DOM"
+        ],
+        // Strictness and Checks
+        "strict": true,
+        "forceConsistentCasingInFileNames": true,
+        "isolatedModules": true,
+        "noUnusedLocals": false,
+        "skipLibCheck": true
+    },
+    "include": [
+        "src"
+    ]
+}
