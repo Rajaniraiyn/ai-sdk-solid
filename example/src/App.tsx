@@ -20,9 +20,9 @@ function App() {
   return (
     <div>
       <div>
-        <div>Status: {chat.status}</div>
-        <Show when={chat.error}>
-          <div>Error: {chat.error?.message}</div>
+        <div>Status: {chat.status()}</div>
+        <Show when={chat.error()}>
+          <div>Error: {chat.error()?.message}</div>
         </Show>
       </div>
       <div>

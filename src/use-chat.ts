@@ -1,10 +1,11 @@
 import {
     AbstractChat,
     ChatInit,
+    ChatStatus,
     type CreateUIMessage,
     type UIMessage,
 } from 'ai';
-import { onMount } from 'solid-js';
+import { Accessor, onMount } from 'solid-js';
 import { Chat } from './chat.solid';
 
 export type { CreateUIMessage, UIMessage };
@@ -24,7 +25,8 @@ export type UseChatHelpers<UI_MESSAGE extends UIMessage> = {
         messages: UI_MESSAGE[] | ((messages: UI_MESSAGE[]) => UI_MESSAGE[]),
     ) => void;
 
-    error: Error | undefined;
+    error: Accessor<Error | undefined>;
+    status: Accessor<ChatStatus>;
 } & Pick<
     AbstractChat<UI_MESSAGE>,
     | 'sendMessage'
@@ -32,7 +34,6 @@ export type UseChatHelpers<UI_MESSAGE extends UIMessage> = {
     | 'stop'
     | 'resumeStream'
     | 'addToolResult'
-    | 'status'
     | 'messages'
     | 'clearError'
 >;
@@ -70,14 +71,15 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     return {
         id: chat.id,
         messages: chat.messages,
+        // wrap in accessors to preserve reactivity
+        error: () => chat.error,
+        status: () => chat.status,
         setMessages,
         sendMessage: chat.sendMessage,
         regenerate: chat.regenerate,
         clearError: chat.clearError,
         stop: chat.stop,
-        error: chat.error,
         resumeStream: chat.resumeStream,
-        status: chat.status,
         addToolResult: chat.addToolResult,
     };
 }

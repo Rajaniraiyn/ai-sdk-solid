@@ -6,6 +6,7 @@ import {
   type CreateUIMessage,
   type UIMessage,
 } from "ai";
+import { createSignal } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
 
 export type { CreateUIMessage, UIMessage };
@@ -22,16 +23,21 @@ export class Chat<UI_MESSAGE extends UIMessage> extends AbstractChat<UI_MESSAGE>
 class SolidChatState<UI_MESSAGE extends UIMessage> implements ChatState<UI_MESSAGE> {
   #store;
   #setStore;
+
+  #statusSignal;
+  #setStatusSignal;
+
+  #errorSignal;
+  #setErrorSignal;
+
   constructor(messages: UI_MESSAGE[] = []) {
     [this.#store, this.#setStore] = createStore<{
       messages: UI_MESSAGE[];
-      status: ChatStatus;
-      error: Error | undefined;
     }>({
       messages,
-      status: "ready",
-      error: undefined,
     });
+    [this.#statusSignal, this.#setStatusSignal] = createSignal<ChatStatus>("ready");
+    [this.#errorSignal, this.#setErrorSignal] = createSignal<Error | undefined>(undefined);
   }
 
   get messages(): UI_MESSAGE[] {
@@ -42,17 +48,17 @@ class SolidChatState<UI_MESSAGE extends UIMessage> implements ChatState<UI_MESSA
   }
 
   get status(): ChatStatus {
-    return this.#store.status;
+    return this.#statusSignal();
   }
   set status(value: ChatStatus) {
-    this.#setStore("status", value);
+    this.#setStatusSignal(value);
   }
 
   get error(): Error | undefined {
-    return this.#store.error;
+    return this.#errorSignal();
   }
   set error(value: Error | undefined) {
-    this.#setStore("error", value);
+    this.#setErrorSignal(value);
   }
 
   pushMessage(message: UI_MESSAGE) {
