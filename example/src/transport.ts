@@ -19,9 +19,13 @@ export class DangerousBrowserTransport<UI_MESSAGE extends UIMessage>
       abortSignal?: AbortSignal;
     } & ChatRequestOptions,
   ) => {
+    // mimics as if this was sent over the wire
+    // removes solid-js symbol-keyed properties - with the solid-js symbol keys the messages validation fails
+    const strippedMessages = JSON.parse(JSON.stringify(options.messages));
+
     const result = streamText({
       model: openai("gpt-4.1-nano"),
-      messages: convertToModelMessages(options.messages),
+      messages: convertToModelMessages(strippedMessages),
     });
 
     return result.toUIMessageStream({
