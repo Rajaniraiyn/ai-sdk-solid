@@ -45,6 +45,11 @@
   "peerDependencies": {
     "solid-js": "^1"
   },
+  "peerDependenciesMeta": {
+    "solid-js": {
+      "optional": false
+    }
+  },
   "workspaces": [
     "example"
   ],
