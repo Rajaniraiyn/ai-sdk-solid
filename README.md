@@ -43,7 +43,7 @@ function ChatUI() {
         input.value = "";
       }}
     >
-      <div>status: {chat.status}</div>
+      <div>status: {chat.status()}</div>
       <For each={chat.messages}>{(m) => <pre>{JSON.stringify(m)}</pre>}</For>
       <input ref={input} type="text" />
       <button type="submit">Send</button>
@@ -74,9 +74,9 @@ function CompletionBox() {
 
   return (
     <form onSubmit={handleSubmit}>
-      <textarea value={input} onInput={(e) => setInput(e.currentTarget.value)} />
-      <button disabled={isLoading}>Go</button>
-      <pre>{completion}</pre>
+      <textarea value={input()} onInput={(e) => setInput(e.currentTarget.value)} />
+      <button disabled={isLoading()}>Go</button>
+      <pre>{completion()}</pre>
     </form>
   );
 }

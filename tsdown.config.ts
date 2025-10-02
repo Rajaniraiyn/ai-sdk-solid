@@ -6,5 +6,6 @@ export default defineConfig({
   platform: "neutral",
   sourcemap: true,
   outDir: "dist",
-  clean: true
+  clean: true,
+  treeshake: true,
 });

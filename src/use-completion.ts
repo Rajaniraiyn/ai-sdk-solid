@@ -1,182 +1,138 @@
-import {
-    CompletionRequestOptions,
-    UseCompletionOptions,
-    callCompletionApi,
-} from 'ai';
-import { createEffect, onCleanup } from 'solid-js';
-import { createStore } from 'solid-js/store';
+import type { CompletionRequestOptions, UseCompletionOptions } from "ai";
+import { callCompletionApi } from "ai";
+import type { Accessor, Setter } from "solid-js";
+import { createSignal, onCleanup } from "solid-js";
 
 export type { UseCompletionOptions };
 
-export type UseCompletionHelpers = {
-    /** The current completion result */
-    completion: string;
-    /**
-     * Send a new prompt to the API endpoint and update the completion state.
-     */
-    complete: (
-        prompt: string,
-        options?: CompletionRequestOptions,
-    ) => Promise<string | null | undefined>;
-    /** The error object of the API request */
-    error: undefined | Error;
-    /**
-     * Abort the current API request but keep the generated tokens.
-     */
-    stop: () => void;
-    /**
-     * Update the `completion` state locally.
-     */
-    setCompletion: (completion: string) => void;
-    /** The current value of the input */
-    input: string;
-    /** setStore-powered method to update the input value */
-    setInput: (v: string) => void;
-    /**
-     * An input/textarea-ready onChange handler to control the value of the input
-     * @example
-     * ```jsx
-     * <input onInput={handleInputChange} value={input} />
-     * ```
-     */
-    handleInputChange: (
-        event: Event & { currentTarget: HTMLInputElement | HTMLTextAreaElement }
-    ) => void;
+export interface UseCompletionHelpers {
+	/** The current completion result */
+	completion: Accessor<string>;
+	/**
+	 * Update the `completion` state locally.
+	 */
+	setCompletion: Setter<string>;
+	/**
+	 * Send a new prompt to the API endpoint and update the completion state.
+	 */
+	complete: (
+		prompt: string,
+		options?: CompletionRequestOptions,
+	) => Promise<string | null | undefined>;
+	/** The error object of the API request */
+	error: Accessor<Error | undefined>;
+	/**
+	 * Abort the current API request but keep the generated tokens.
+	 */
+	stop: () => void;
+	/** The current value of the input */
+	input: Accessor<string>;
+	/** setStore-powered method to update the input value */
+	setInput: Setter<string>;
+	/**
+	 * An input/textarea-ready onChange handler to control the value of the input
+	 * @example
+	 * ```jsx
+	 * <input value={input()} onInput={handleInputChange} />
+	 * ```
+	 */
+	handleInputChange: (event: {
+		currentTarget: HTMLInputElement | HTMLTextAreaElement;
+	}) => void;
 
-    /**
-     * Form submission handler to automatically reset input and append a user message
-     * @example
-     * ```jsx
-     * <form onSubmit={handleSubmit}>
-     *  <input onInput={handleInputChange} value={input} />
-     * </form>
-     * ```
-     */
-    handleSubmit: (event?: { preventDefault?: () => void }) => void;
+	/**
+	 * Form submission handler to automatically reset input and append a user message
+	 * @example
+	 * ```jsx
+	 * <form onSubmit={handleSubmit}>
+	 *  <input value={input()} onInput={handleInputChange} />
+	 * </form>
+	 * ```
+	 */
+	handleSubmit: (event?: { preventDefault?: () => void }) => void;
 
-    /** Whether the API request is in progress */
-    isLoading: boolean;
-};
+	/** Whether the API request is in progress */
+	isLoading: Accessor<boolean>;
+}
 
 export function useCompletion({
-    api = '/api/completion',
-    initialCompletion = '',
-    initialInput = '',
-    credentials,
-    headers,
-    body,
-    streamProtocol = 'data',
-    fetch,
-    onFinish,
-    onError,
+	api = "/api/completion",
+	initialCompletion = "",
+	initialInput = "",
+	credentials,
+	headers,
+	body,
+	streamProtocol = "data",
+	fetch,
+	onFinish,
+	onError,
 }: UseCompletionOptions = {}): UseCompletionHelpers {
-    const [state, setState] = createStore<{
-        completion: string;
-        isLoading: boolean;
-        error?: Error;
-        input: string;
-        abortController: AbortController | null;
-        extraMetadata: {
-            credentials?: RequestCredentials;
-            headers?: Record<string, string> | Headers;
-            body?: Record<string, unknown> | object;
-        };
-    }>({
-        completion: initialCompletion,
-        isLoading: false,
-        error: undefined,
-        input: initialInput,
-        abortController: null,
-        extraMetadata: {
-            credentials,
-            headers,
-            body,
-        },
-    });
+	const [completion, setCompletion] = createSignal(initialCompletion);
+	const [error, setError] = createSignal<Error>();
+	const [isLoading, setIsLoading] = createSignal(false);
+	const [input, setInput] = createSignal(initialInput);
 
-    // Keep extraMetadata up to date
-    createEffect(() => {
-        setState('extraMetadata', {
-            credentials,
-            headers,
-            body,
-        });
-    });
+	let controller: AbortController | null = null;
+	const stop: UseCompletionHelpers["stop"] = () => {
+		controller?.abort();
+		controller = null;
+	};
+	onCleanup(stop);
 
-    // Clean up abort controller on unmount
-    onCleanup(() => {
-        if (state.abortController) {
-            state.abortController.abort();
-        }
-    });
+	const complete: UseCompletionHelpers["complete"] = async (
+		prompt,
+		options,
+	) => {
+		setIsLoading(true);
+		setError(undefined);
 
-    // The main function to trigger the API request
-    async function triggerRequest(prompt: string, options?: CompletionRequestOptions) {
-        setState('isLoading', true);
-        setState('error', undefined);
+		const response = await callCompletionApi({
+			api,
+			prompt,
+			credentials,
+			headers: { ...headers, ...options?.headers },
+			body: {
+				...body,
+				...options?.body,
+			},
+			streamProtocol,
+			fetch,
+			setCompletion,
+			setLoading: setIsLoading,
+			setError,
+			setAbortController: (ac) => (controller = ac),
+			onFinish,
+			onError,
+		});
+		return response;
+	};
 
-        return callCompletionApi({
-            api,
-            prompt,
-            credentials: state.extraMetadata.credentials,
-            headers: { ...state.extraMetadata.headers, ...options?.headers },
-            body: {
-                ...state.extraMetadata.body,
-                ...options?.body,
-            },
-            streamProtocol,
-            fetch,
-            setCompletion: (v: string) => setState('completion', v),
-            setLoading: (v: boolean) => setState('isLoading', v),
-            setError: (e: Error | undefined) => setState('error', e),
-            setAbortController: (ac: AbortController | null) => setState('abortController', ac),
-            onFinish,
-            onError,
-        });
-    }
+	const handleInputChange: UseCompletionHelpers["handleInputChange"] = (
+		event,
+	) => {
+		setInput(event.currentTarget.value);
+	};
 
-    function stop() {
-        if (state.abortController) {
-            state.abortController.abort();
-            setState('abortController', null);
-        }
-    }
+	const handleSubmit: UseCompletionHelpers["handleSubmit"] = (event?: {
+		preventDefault?: () => void;
+	}) => {
+		event?.preventDefault?.();
+		const inputValue = input();
+		if (inputValue) {
+			complete(inputValue);
+		}
+	};
 
-    async function complete(prompt: string, options?: CompletionRequestOptions) {
-        return triggerRequest(prompt, options);
-    }
-
-    function setCompletion(completion: string) {
-        setState('completion', completion);
-    }
-
-    function setInput(v: string) {
-        setState('input', v);
-    }
-
-    function handleInputChange(
-        e: Event & { currentTarget: HTMLInputElement | HTMLTextAreaElement }
-    ) {
-        setInput(e.currentTarget.value);
-    }
-
-    function handleSubmit(event?: { preventDefault?: () => void }) {
-        event?.preventDefault?.();
-        if (state.input) {
-            complete(state.input);
-        }
-    }
-
-    return {
-        completion: state.completion,
-        complete,
-        error: state.error,
-        setCompletion,
-        stop,
-        input: state.input,
-        setInput,
-        handleInputChange,
-        handleSubmit,
-        isLoading: state.isLoading,
-    };
+	return {
+		completion,
+		complete,
+		error,
+		setCompletion,
+		stop,
+		input,
+		setInput,
+		handleInputChange,
+		handleSubmit,
+		isLoading,
+	};
 }
